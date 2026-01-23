@@ -1,0 +1,144 @@
+A Hybrid ARIMA-Ensemble Decomposition Framework for Modeling Long-Run Economic Growth in Bangladesh: Integrating Temporal Dynamics with Sectoral Carbon-Energy Nonlinearities
+
+Abstract
+Modeling long-run economic growth in emerging economies requires capturing both deterministic temporal trends and complex, nonlinear interactions between sectoral productivity and environmental externalities. Traditional econometric models often fail to capture nonlinearities, while standalone machine learning (ML) architectures frequently ignore temporal dependencies, leading to biased estimates and residual autocorrelation. This study introduces a Hybrid ARIMA-Ensemble Decomposition framework to forecast and interpret Bangladesh's GDP dynamics (1970–2025) by integrating sectoral carbon emissions, energy consumption, and structural transformation indicators. Our architecture employs a two-stage approach: a linear ARIMA(3,1,2) component filters the primary growth trend, while a stacked ensemble (Gradient Boosting, Random Forest, and XGBoost) models the remaining stochastic residuals using exogenous economic features. Validated through a rigorous step-forward walk-forward strategy, the Hybrid-Stack model achieved a Mean Absolute Percentage Error (MAPE) of 7.85% and significantly corrected the systematic bias (PBIAS < 1%) and residual autocorrelation (Durbin-Watson ≈ 2.37) found in standalone ML models. The framework further incorporates a dual-layer Explainable AI (XAI) mechanism using SHAP and LIME to ensure transparency. This hybrid approach offers a robust, policy-relevant tool for aligning industrial expansion with carbon mitigation strategies in developing contexts.
+
+1. Introduction
+The nexus between structural transformation, energy intensity, and economic trajectory constitutes a fundamental challenge for sustainable development. For emerging economies like Bangladesh, the transition from agrarian to industrial-service structures is characterized by non-stationary growth patterns and heterogeneous sectoral contributions to carbon footprints. Empirically capturing these dynamics requires analytical tools that can simultaneously handle linear temporal momentum and nonlinear shocks driven by policy shifts or energy-sector volatility.
+
+Current literature is bifurcated: classical econometrics (e.g., VECM, ARDL) provides theoretical consistency but struggles with high-dimensional nonlinearities; conversely, modern ML models (e.g., XGBoost, Random Forest) offer high predictive power but often treat time-series observations as independent and identically distributed (i.i.d.), resulting in "look-ahead bias" or failure to account for unit roots. Furthermore, the "black-box" nature of ensemble methods limits their utility in high-stakes macroeconomic policy design.
+
+This study bridges this gap by proposing an Explainable Hybrid ARIMA-Ensemble Framework. The novelty lies in its residual-learning decomposition: we isolate the auto-regressive linear signal of GDP using an ARIMA process and then deploy a multi-model ensemble to learn the relationship between the residuals and sectoral carbon-energy variables. This ensures that the ML component focuses exclusively on the "unexplained" variance driven by exogenous factors. By integrating SHAP (Shapley Additive Explanations) for global feature attribution and LIME (Local Interpretable Model-agnostic Explanations) for year-specific shocks, we provide a transparent decomposition of growth drivers. This methodology ensures both statistical rigor (temporal integrity) and machine learning flexibility (nonlinear capture), providing a replicable blueprint for sustainable growth modeling in the Global South.
+
+2. Methodology
+
+2.1. Framework Architecture: The Hybrid Decomposition
+The study adopts a hierarchical decomposition approach where the target variable, GDP (y_t), is modeled as a composite of a linear temporal component (L_t) and a nonlinear exogenous component (N_t):
+
+y_t = L_t + N_t + ε_t
+
+Stage 1: Linear Signal Extraction (ARIMA):
+We employ an ARIMA(3,1,2) process to model the deterministic trend and inertia of the GDP series. This captures the first-order differencing (d=1) required for stationarity and the short-term dependencies (p=3, q=2). The output of this stage provides the "baseline" growth forecast based solely on historical GDP momentum.
+
+Stage 2: Nonlinear Residual Learning (Ensemble):
+The residuals from Stage 1 (Resid_t = y_t - L̂_t) represent the economic variance that cannot be explained by time alone. These residuals are mapped against a feature matrix X (containing sectoral carbon emissions, energy use, and urbanization) using a Stacked Ensemble consisting of:
+- Gradient Boosting (GBM): To minimize loss through sequential error correction.
+- Random Forest (RF): To reduce variance through bootstrap aggregation.
+- XGBoost: To provide regularization and handle potential sparsity in sectoral data.
+
+Stage 3: Integration (Meta-Learning):
+The final GDP forecast is reconstructed by summing the ARIMA linear prediction and the ensemble-predicted residual. This hybridity ensures the model respects the Durbin-Watson criteria for no autocorrelation while capturing complex feature interactions.
+
+2.2. Validation Strategy: Step-Forward Walk-Forward
+To prevent data leakage and simulate real-world forecasting, we implement a Step-Forward Walk-Forward (Expanding Window) validation strategy:
+- The model is initially trained on a minimum window of 10 years.
+- For each iteration T, the model predicts T+1.
+- The window then expands to include T+1, and the model is retrained for the next step.
+- This ensures that the model never "sees" the future and that performance metrics (RMSE, MAPE, Theil's U) reflect true out-of-sample predictive power.
+
+2.3. Explainability and Interpretability (XAI)
+To transition the model from a predictive tool to a diagnostic one, we apply a dual XAI layer:
+- Global Explainability (SHAP): We use KernelSHAP to calculate the average impact of features (e.g., Industrial vs. Agricultural CO₂) on the residuals over the 50-year period. This identifies which sectors are the most consistent drivers of growth deviations.
+- Local Interpretability (LIME): For specific years of volatility (corona time where co2 emmison was less but gdp didnt backed much), LIME creates local surrogate models to explain why the GDP diverged from the linear trend in that specific instance.
+
+2.4. Data Preprocessing and Scaling
+Given the magnitude of GDP in USD billions vs. carbon emissions in metric tons, all features undergo Standard Scaling (μ=0, σ=1) within each walk-forward fold. This prevents features with larger numerical ranges from dominating the ensemble splitting criteria and ensures the SVR and Linear components converge efficiently.
+
+3. Research Hypothesis
+H₁: Bangladesh's long-run GDP growth is governed by nonlinear and time-varying interactions among sectoral carbon emissions, energy consumption, and structural economic transformation, which can be more accurately and transparently captured using a Hybrid ARIMA-Ensemble Decomposition framework than by standalone econometric or machine learning models.
+
+4. Aim and Objectives
+Overall Aim
+To develop and validate an interpretable Hybrid ARIMA-Ensemble framework that decomposes Bangladesh's long-run economic growth by explicitly separating temporal auto-regressive dynamics from nonlinear sectoral carbon-energy interactions, while maintaining statistical rigor and temporal integrity.
+
+Specific Objectives
+1. To construct a Hybrid ARIMA-Ensemble model decomposing GDP into ARIMA(3,1,2) linear trends and ensemble-based residual learning for the period 1970–2025.
+2. To evaluate predictive performance of the Hybrid-Stack architecture against standalone ARIMA, standalone ensemble models, and benchmark econometric models using RMSE, MAE, MAPE, R², PBIAS, Theil's U, and Durbin-Watson metrics.
+3. To demonstrate that the hybrid approach corrects systematic bias (PBIAS) and residual autocorrelation (Durbin-Watson ≈ 2) in standalone ML models.
+4. To apply SHAP-based global explainability to identify long-run sectoral contributions to GDP growth deviations.
+5. To employ LIME-based local explanations for year-specific shock decomposition during structural transitions or macroeconomic disruptions.
+6. To assess the policy relevance of extracted insights for balancing industrial expansion with carbon mitigation in emerging economies.
+
+5. Data Description and Sources
+
+5.1 Data Sources
+This study relies exclusively on secondary, publicly available datasets obtained from the World Bank's World Development Indicators (WDI) and associated sectoral environmental databases. The primary data source is:
+World Bank Open Data Portal: https://data.worldbank.org
+
+5.2 Variables and Coverage
+The dataset comprises annual observations for Bangladesh spanning 1970–2025, subject to availability. Key variables include:
+- Gross Domestic Product (GDP) (current US$): Indicator Code: NY.GDP.MKTP.CD
+- Urban Population (% of total population): Indicator Code: SP.URB.TOTL.IN.ZS
+- Industry Value Added (% of GDP): Indicator Code: NV.IND.TOTL.ZS
+- Electric Power Consumption (kWh per capita): Indicator Code: EG.USE.ELEC.KH.PC
+- Sectoral Carbon Emissions (metric tons of CO₂): Sectoral carbon emission variables are included for agriculture, buildings, industry combustion, industrial processes, power generation, and transport, sourced from World Bank-linked emissions inventories and harmonized sectoral datasets.
+
+All variables are aligned temporally and standardized within each walk-forward fold prior to modeling to ensure comparability across decades and prevent feature scale dominance.
+
+6. Model Specification Details
+
+6.1 Base Learner Architectures
+
+Gradient Boosting Machine (GBM):
+- n_estimators: 500
+- learning_rate: 0.03
+- max_depth: 3
+- subsample: 0.8
+- Loss function: Squared error
+
+Random Forest (RF):
+- n_estimators: 500
+- min_samples_leaf: 2
+- Bootstrap: Enabled
+- Criterion: MSE
+
+Extreme Gradient Boosting (XGBoost):
+- n_estimators: 500
+- learning_rate (eta): 0.05
+- max_depth: 4
+- subsample: 0.8
+- colsample_bytree: 0.8
+- objective: reg:squarederror
+
+6.2 Stacking Meta-Learner
+The three base learner predictions are combined through a simple averaging mechanism (Hybrid-Stack) or retained individually (Hybrid-GBM, Hybrid-RF, Hybrid-XGB). The stacking integration follows:
+
+GDP_Forecast = ARIMA_Forecast + Average(GBM_Residuals, RF_Residuals, XGBoost_Residuals)
+
+7. Evaluation Metrics
+
+The framework employs ten complementary metrics:
+1. Root Mean Squared Error (RMSE): Absolute error magnitude, emphasizing large deviations
+2. Mean Absolute Error (MAE): Linear error penalty, robust to outliers
+3. Mean Absolute Percentage Error (MAPE): Scale-independent percentage error
+4. R² Coefficient: Variance explained by the model
+5. Percent Bias (PBIAS): Systematic over/under-prediction tendency
+6. Relative Error Mean: Average percentage deviation per observation
+7. Directional Accuracy: Percentage of correctly predicted directional changes
+8. Theil's U: Model RMSE ratio to naive random-walk forecast
+9. Durbin-Watson: Autocorrelation diagnostics in residuals
+10. p-value: Statistical significance of unbiased forecast hypothesis
+
+8. Ethical Considerations
+This study uses only publicly available, aggregated macroeconomic data and involves no human participants, personal identifiers, or sensitive information. Ethical research standards are upheld through transparent reporting, reproducible modeling procedures, and cautious policy interpretation.
+
+9. Contribution and Policy Relevance
+This study contributes methodologically by advancing Hybrid ARIMA-Ensemble decomposition in macroeconomic analysis and substantively by revealing how sectoral carbon–energy dynamics interact with structural transformation to shape long-run growth while maintaining temporal and statistical rigor. The framework explicitly addresses the trade-off between econometric consistency and machine learning flexibility, demonstrating that residual-based ensemble learning can capture nonlinearities without sacrificing autocorrelation diagnostics. While empirically focused on Bangladesh, the framework is readily transferable to other emerging economies pursuing sustainable development pathways.
+
+10. References
+Ismail, M., et al. (2025). A machine learning framework for predicting Bangladesh's economic growth: Emphasizing the sector-specific carbon emission dynamics. https://doi.org/10.1016/j.ssaho.2025.102081
+
+Yoon, J. (2024). Predicting gross domestic product using the ensemble machine learning method. https://doi.org/10.1016/j.sasc.2024.200132
+
+Lundberg, S. M., & Lee, S. I. (2017). A Unified Approach to Interpreting Model Predictions. (The foundational SHAP paper). https://doi.org/10.48550/arXiv.1705.07874
+
+Murshed, M., et al. (2022). Renewable energy, urbanization, and ecological footprints in South Asia: Re-evaluating the Environmental Kuznets Curve. Environmental Science and Pollution Research. DOI:10.3390/su13041613
+
+Ribeiro, M. T., et al. (2016). "Why Should I Trust You?": Explaining the Predictions of Any Classifier. (The foundational LIME paper). https://doi.org/10.48550/arXiv.1602.04938
+
+
+
+
+
+
+

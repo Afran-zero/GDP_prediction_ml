@@ -15,6 +15,9 @@ except Exception:
 
 warnings.filterwarnings("ignore")
 
+# Dampening factor for ML residual correction
+DAMPENING_ALPHA = 0.5
+
 file_id = "19p212T1s9EbudQH4G4rxMgFP4vH1sVWQ4y7f_xWqXnM"
 url = f"https://docs.google.com/spreadsheets/d/{file_id}/export?format=csv"
 print("Loading dataset...")
@@ -24,13 +27,7 @@ df = df.sort_values('Year').reset_index(drop=True)
 target_col = 'GDP_Current_USD'
 feature_cols = [c for c in df.columns if c not in ['Year', target_col]]
 
-lags = [1, 2, 3]
 df_feat = df.copy()
-for lag in lags:
-    df_feat[f"{target_col}_Lag{lag}"] = df_feat[target_col].shift(lag)
-
-df_feat = df_feat.dropna().reset_index(drop=True)
-feature_cols = feature_cols + [f"{target_col}_Lag{lag}" for lag in lags]
 
 X = df_feat[feature_cols].values
 y = df_feat[target_col].values
@@ -138,8 +135,8 @@ def evaluate_hybrid_arima_ensemble(df_feat, target_col, feature_cols):
         X_test_scaled = scaler.transform(X_test)
 
         gbm_resid = GradientBoostingRegressor(
-            n_estimators=500, learning_rate=0.03, max_depth=3,
-            subsample=0.8, random_state=42
+            n_estimators=500, learning_rate=0.03, max_depth=2,
+            subsample=0.8, min_samples_leaf=4, random_state=42
         )
         try:
             gbm_resid.fit(X_train_scaled, resid)
@@ -148,7 +145,7 @@ def evaluate_hybrid_arima_ensemble(df_feat, target_col, feature_cols):
             resid_pred_gbm = np.nan
 
         rf_resid = RandomForestRegressor(
-            n_estimators=500, random_state=42, min_samples_leaf=2
+            n_estimators=500, random_state=42, max_depth=3, min_samples_leaf=5
         )
         try:
             rf_resid.fit(X_train_scaled, resid)
@@ -158,8 +155,9 @@ def evaluate_hybrid_arima_ensemble(df_feat, target_col, feature_cols):
 
         if HAS_XGB:
             xgb_resid = XGBRegressor(
-                n_estimators=500, learning_rate=0.05, max_depth=4,
+                n_estimators=500, learning_rate=0.05, max_depth=3,
                 subsample=0.8, colsample_bytree=0.8,
+                reg_alpha=0.1, reg_lambda=2.0,
                 random_state=42, objective='reg:squarederror'
             )
             try:
@@ -170,14 +168,14 @@ def evaluate_hybrid_arima_ensemble(df_feat, target_col, feature_cols):
         else:
             resid_pred_xgb = np.nan
 
-        hybrid_pred_gbm = arima_forecast + resid_pred_gbm
-        hybrid_pred_rf = arima_forecast + resid_pred_rf
-        hybrid_pred_xgb = arima_forecast + resid_pred_xgb
+        hybrid_pred_gbm = arima_forecast + (DAMPENING_ALPHA * resid_pred_gbm)
+        hybrid_pred_rf = arima_forecast + (DAMPENING_ALPHA * resid_pred_rf)
+        hybrid_pred_xgb = arima_forecast + (DAMPENING_ALPHA * resid_pred_xgb)
 
         valid_resid_preds = [p for p in [resid_pred_gbm, resid_pred_rf, resid_pred_xgb] if not np.isnan(p)]
         if len(valid_resid_preds) > 0:
             resid_stack = float(np.mean(valid_resid_preds))
-            hybrid_pred_stack = arima_forecast + resid_stack
+            hybrid_pred_stack = arima_forecast + (DAMPENING_ALPHA * resid_stack)
         else:
             hybrid_pred_stack = np.nan
 
@@ -227,3 +225,5 @@ pd.set_option('display.float_format', lambda x: '%.4f' % x)
 pd.set_option('display.max_columns', None)
 print(df_hybrid.to_string(index=False))
 print("-" * 135)
+
+#Sensitivity analysis of model performance 
