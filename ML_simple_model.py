@@ -1,5 +1,5 @@
 
-!pip install -q xgboost
+# !pip install -q xgboost opcuna statsmodels matplotlib scikit-learn pandas numpy
 
 import pandas as pd
 import numpy as np
